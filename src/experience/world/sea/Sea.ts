@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import vertexShader from "./vertex.glsl";
 import fragmentShader from "./fragment.glsl";
+import cnoise from "./cnoise.glsl";
 import Experience from "../../Experience";
 import GUI from "lil-gui";
 
@@ -10,6 +11,7 @@ interface VariantConfig {
   bgColor: `#${string}`;
   surfaceColor: `#${string}`;
   depthColor: `#${string}`;
+  foamColor: `#${string}`;
   colorOffset: number;
   colorMultiplier: number;
 }
@@ -21,8 +23,9 @@ class Sea {
   private tweaks?: GUI;
   segmentsAmount: number;
   currentVariant: SeaVariant;
-  surfaceColor: string;
-  depthColor: string;
+  surfaceColor: `#${string}`;
+  depthColor: `#${string}`;
+  foamColor: `#${string}`;
   geometry: THREE.PlaneGeometry;
   material: THREE.ShaderMaterial;
   mesh: THREE.Mesh;
@@ -32,6 +35,7 @@ class Sea {
       bgColor: "#89bcc8",
       surfaceColor: "#40809c",
       depthColor: "#0a3544",
+      foamColor: "#98cbe1",
       colorOffset: 0.2,
       colorMultiplier: 5.4,
     },
@@ -39,6 +43,7 @@ class Sea {
       bgColor: "#94ebff",
       surfaceColor: "#01c4d2",
       depthColor: "#2a7eb7",
+      foamColor: "#d1f1ff",
       colorOffset: 0.183,
       colorMultiplier: 4.5,
     },
@@ -46,6 +51,7 @@ class Sea {
       bgColor: "#b3dbf1",
       surfaceColor: "#4486b7",
       depthColor: "#07294f",
+      foamColor: "#b3d8f4",
       colorOffset: 0.25,
       colorMultiplier: 4.5,
     },
@@ -71,6 +77,10 @@ class Sea {
     );
     this.surfaceColor = this.variants[this.currentVariant].surfaceColor;
     this.depthColor = this.variants[this.currentVariant].depthColor;
+    this.foamColor = this.variants[this.currentVariant].foamColor;
+
+    // @ts-ignore
+    THREE.ShaderChunk.cnoise = cnoise;
 
     this.geometry = new THREE.PlaneGeometry(
       10,
@@ -84,8 +94,8 @@ class Sea {
       transparent: true,
       uniforms: {
         uTime: { value: 0 },
-        uWavesElevation: { value: 0.1 },
-        uWavesFrequency: { value: new THREE.Vector2(4, 1.1) },
+        uWavesElevation: { value: 0.102 },
+        uWavesFrequency: { value: new THREE.Vector2(2.5, 1.05) },
         uWavesSpeed: { value: 0.75 },
         uChopWavesElevation: { value: 0.1 },
         uChopWavesFrequency: { value: 1.75 },
@@ -97,6 +107,12 @@ class Sea {
         uColorMultiplier: {
           value: this.variants[this.currentVariant].colorMultiplier,
         },
+        uFoamColor: { value: new THREE.Color(this.foamColor) },
+        uFoamOffset: { value: 0.175 },
+        uFoamNoiseIntensity: { value: 0.3 },
+        uFoamIntensity: { value: 3.45 },
+        uFoamSpeed: { value: 0.12 },
+        uFoamScale: { value: 13.0 },
       },
     });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
@@ -119,9 +135,12 @@ class Sea {
     this.experience.scene.background = new THREE.Color(variant.bgColor);
     this.surfaceColor = variant.surfaceColor;
     this.depthColor = variant.depthColor;
+    this.foamColor = variant.foamColor;
 
     this.material.uniforms.uSurfaceColor.value.set(this.surfaceColor);
     this.material.uniforms.uDepthColor.value.set(this.depthColor);
+    this.material.uniforms.uFoamColor.value.set(this.foamColor);
+
     this.material.uniforms.uColorOffset.value = variant.colorOffset;
     this.material.uniforms.uColorMultiplier.value = variant.colorMultiplier;
   }
@@ -250,6 +269,46 @@ class Sea {
       .max(10)
       .step(0.01)
       .name("ChopWavesFrequency");
+
+    const foamTweaks = this.tweaks.addFolder("Foam");
+    foamTweaks
+      .addColor(this, "foamColor")
+      .name("FoamColor")
+      .onChange(() => {
+        this.material.uniforms.uFoamColor.value.set(this.foamColor);
+      })
+      .listen();
+    foamTweaks
+      .add(this.material.uniforms.uFoamNoiseIntensity, "value")
+      .min(0)
+      .max(5)
+      .step(0.001)
+      .name("FoamNoiseIntensity");
+    foamTweaks
+      .add(this.material.uniforms.uFoamIntensity, "value")
+      .min(0)
+      .max(5)
+      .step(0.001)
+      .name("FoamIntensity");
+    foamTweaks
+      .add(this.material.uniforms.uFoamOffset, "value")
+      .min(0)
+      .max(1)
+      .step(0.001)
+      .name("FoamOffset");
+    foamTweaks
+      .add(this.material.uniforms.uFoamScale, "value")
+      .min(0)
+      .max(20)
+      .step(0.001)
+      .name("FoamScale");
+
+    foamTweaks
+      .add(this.material.uniforms.uFoamSpeed, "value")
+      .min(0)
+      .max(1)
+      .step(0.001)
+      .name("FoamSpeed");
   }
 
   dispose() {
