@@ -1,0 +1,20 @@
+@font-face {
+  font-family: "SourceCodePro";
+  src: url("/fonts/SourceCodePro-Medium.ttf");
+  font-size: normal;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow: hidden;
+}
+
+.lil-gui {
+  --width: min(400px, 90%);
+}
