@@ -18,7 +18,10 @@ class World {
   }
 
   destroy() {
-    this.sea?.dispose();
+    if (this.sea) {
+      this.sea.dispose();
+      this.sea = undefined;
+    }
   }
 }
 

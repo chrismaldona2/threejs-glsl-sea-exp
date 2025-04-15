@@ -18,8 +18,9 @@ interface VariantConfig {
 
 class Sea {
   private readonly experience: Experience;
-  private readonly sound: HTMLAudioElement;
   private tweaks?: GUI;
+  private readonly sound: HTMLAudioElement;
+  private playSoundOnInteraction: () => void;
   soundEnabled: boolean;
   geometry: THREE.PlaneGeometry;
   material: THREE.ShaderMaterial;
@@ -70,13 +71,13 @@ class Sea {
     this.sound.loop = true;
     this.soundEnabled = true;
 
-    const playSoundOnInteraction = () => {
+    this.playSoundOnInteraction = () => {
       this.sound.play();
-      document.removeEventListener("click", playSoundOnInteraction);
+      document.removeEventListener("click", this.playSoundOnInteraction);
     };
-    document.addEventListener("click", playSoundOnInteraction);
+    document.addEventListener("click", this.playSoundOnInteraction);
 
-    this.segmentsAmount = 128;
+    this.segmentsAmount = 64;
     this.currentVariant = "warm";
     this.experience.scene.background = new THREE.Color(
       this.variants[this.currentVariant].bgColor
@@ -108,7 +109,8 @@ class Sea {
         uTime: { value: 0 },
         uWavesElevation: { value: 0.215 },
         uWavesFrequency: { value: new THREE.Vector2(2.5, 1.05) },
-        uWavesSpeed: { value: 0.65 },
+        uWavesSpeed: { value: 0.4 },
+        uWavesWarpIntensity: { value: 0.08 },
         uChopWavesElevation: { value: 0.105 },
         uChopWavesFrequency: { value: 1.75 },
         uChopWavesSpeed: { value: 0.2 },
@@ -192,6 +194,7 @@ class Sea {
       .name("CurrentVariant");
 
     this.tweaks = this.experience.debug.instance.addFolder("Sea");
+    this.tweaks.close();
     this.tweaks
       .add(this, "soundEnabled")
       .name("SoundEnabled")
@@ -228,6 +231,12 @@ class Sea {
       .max(1)
       .step(0.001)
       .name("WavesElevation");
+    this.tweaks
+      .add(this.material.uniforms.uWavesWarpIntensity, "value")
+      .min(0)
+      .max(0.5)
+      .step(0.001)
+      .name("WavesWarpIntensity");
 
     const wavesFrequencyTweak = this.tweaks.addFolder("WavesFrequency");
     wavesFrequencyTweak
@@ -348,11 +357,13 @@ class Sea {
   }
 
   dispose() {
-    if (this.tweaks) {
-      this.tweaks.destroy();
-    }
+    document.removeEventListener("click", this.playSoundOnInteraction);
+    if (this.tweaks) this.tweaks.destroy();
     this.geometry.dispose();
     this.material.dispose();
+    for (const textureKey in this.foamTextures) {
+      this.foamTextures[textureKey].dispose();
+    }
     this.experience.scene.remove(this.mesh);
   }
 }

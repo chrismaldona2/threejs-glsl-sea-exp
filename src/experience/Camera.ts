@@ -16,7 +16,7 @@ class Camera {
       0.1,
       100
     );
-    this.instance.position.set(-4, 3.3, 4.2);
+    this.instance.position.set(-5, 1.15, 5);
     this.experience.scene.add(this.instance);
 
     /* ORBIT CONTROLS */

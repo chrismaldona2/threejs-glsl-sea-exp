@@ -1,5 +1,6 @@
-uniform float uWavesElevation;
 uniform vec2 uWavesFrequency;
+uniform float uWavesElevation;
+uniform float uWavesWarpIntensity;
 uniform float uWavesSpeed;
 uniform float uTime;
 
@@ -15,6 +16,14 @@ varying vec3 vNormal;
 
 #include <cnoise>
 
+/* BASIC DOMAIN WARPING */
+vec2 warpDomain(vec2 coord, float time, float warpIntensity, float warpFrequency) {
+  float offsetX = cnoise(vec3(coord * warpFrequency, time));
+  float offsetY = cnoise(vec3(coord * warpFrequency + 100.0, time));
+  return coord + vec2(offsetX, offsetY) * warpIntensity;
+}
+
+/* WAVE ELEVATION FUNCTION */
 float getElevation(vec2 worldXZ) {
   float elevation = sin(worldXZ.x * uWavesFrequency.x + uTime * uWavesSpeed) * 
                     sin(0.5 * worldXZ.x * uWavesFrequency.x + uTime * uWavesSpeed) *
@@ -23,9 +32,10 @@ float getElevation(vec2 worldXZ) {
                     uWavesElevation;
 
   for(float i = 1.0; i <= uChopWavesIterations; i++) {
-      elevation -= abs(cnoise(vec3(worldXZ * uChopWavesFrequency * i, uTime * uChopWavesSpeed)) * uChopWavesElevation / i);
-  }
+    vec2 warpedChopXZ = warpDomain(worldXZ, uTime, uWavesWarpIntensity, uChopWavesFrequency * i);
 
+    elevation -= abs(cnoise(vec3(warpedChopXZ * uChopWavesFrequency * i, uTime * uChopWavesSpeed)) * uChopWavesElevation / i);
+  }
   return elevation;
 }
 
