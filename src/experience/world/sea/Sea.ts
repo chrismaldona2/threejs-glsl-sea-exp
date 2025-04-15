@@ -6,6 +6,7 @@ import Experience from "../../Experience";
 import GUI from "lil-gui";
 
 type SeaVariant = "cold" | "warm" | "temperate";
+type FoamKey = "none" | "1" | "2";
 
 interface VariantConfig {
   bgColor: `#${string}`;
@@ -19,22 +20,27 @@ interface VariantConfig {
 class Sea {
   private readonly experience: Experience;
   private readonly sound: HTMLAudioElement;
-  soundEnabled: boolean;
   private tweaks?: GUI;
+  soundEnabled: boolean;
+  geometry: THREE.PlaneGeometry;
+  material: THREE.ShaderMaterial;
+  mesh: THREE.Mesh;
+
   segmentsAmount: number;
   currentVariant: SeaVariant;
   surfaceColor: `#${string}`;
   depthColor: `#${string}`;
   foamColor: `#${string}`;
-  geometry: THREE.PlaneGeometry;
-  material: THREE.ShaderMaterial;
-  mesh: THREE.Mesh;
+
+  private foamTextureKeys = ["none", "1", "2"] as const;
+  private foamTextures: Record<string, THREE.Texture>;
+  private selectedFoamTexture: string;
 
   private readonly variants: Record<SeaVariant, VariantConfig> = {
     cold: {
       bgColor: "#89bcc8",
-      surfaceColor: "#40809c",
-      depthColor: "#0a3544",
+      surfaceColor: "#2e7385",
+      depthColor: "#154956",
       foamColor: "#98cbe1",
       colorOffset: 0.2,
       colorMultiplier: 5.4,
@@ -45,14 +51,14 @@ class Sea {
       depthColor: "#2a7eb7",
       foamColor: "#d1f1ff",
       colorOffset: 0.183,
-      colorMultiplier: 4.5,
+      colorMultiplier: 3.1,
     },
     temperate: {
       bgColor: "#b3dbf1",
-      surfaceColor: "#4486b7",
-      depthColor: "#07294f",
+      surfaceColor: "#2c76af",
+      depthColor: "#114178",
       foamColor: "#b3d8f4",
-      colorOffset: 0.25,
+      colorOffset: 0.3,
       colorMultiplier: 4.5,
     },
   };
@@ -61,17 +67,18 @@ class Sea {
     this.experience = Experience.getInstance();
 
     this.sound = new Audio("./sounds/waves.mp3");
-    this.sound.volume = 0.01;
+    this.sound.volume = 0.05;
     this.sound.loop = true;
     this.soundEnabled = true;
+
     const playSoundOnInteraction = () => {
       this.sound.play();
       document.removeEventListener("click", playSoundOnInteraction);
     };
     document.addEventListener("click", playSoundOnInteraction);
 
-    this.segmentsAmount = 256;
-    this.currentVariant = "cold";
+    this.segmentsAmount = 128;
+    this.currentVariant = "warm";
     this.experience.scene.background = new THREE.Color(
       this.variants[this.currentVariant].bgColor
     );
@@ -82,6 +89,11 @@ class Sea {
     // @ts-ignore
     THREE.ShaderChunk.cnoise = cnoise;
 
+    this.foamTextures = {
+      none: new THREE.Texture(),
+    };
+    this.selectedFoamTexture = "none";
+
     this.geometry = new THREE.PlaneGeometry(
       10,
       10,
@@ -91,16 +103,17 @@ class Sea {
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
+      side: THREE.DoubleSide,
       transparent: true,
       uniforms: {
         uTime: { value: 0 },
-        uWavesElevation: { value: 0.102 },
+        uWavesElevation: { value: 0.215 },
         uWavesFrequency: { value: new THREE.Vector2(2.5, 1.05) },
-        uWavesSpeed: { value: 0.75 },
-        uChopWavesElevation: { value: 0.1 },
+        uWavesSpeed: { value: 0.65 },
+        uChopWavesElevation: { value: 0.105 },
         uChopWavesFrequency: { value: 1.75 },
         uChopWavesSpeed: { value: 0.2 },
-        uChopWavesIterations: { value: 4 },
+        uChopWavesIterations: { value: 3 },
         uSurfaceColor: { value: new THREE.Color(this.surfaceColor) },
         uDepthColor: { value: new THREE.Color(this.depthColor) },
         uColorOffset: { value: this.variants[this.currentVariant].colorOffset },
@@ -108,18 +121,35 @@ class Sea {
           value: this.variants[this.currentVariant].colorMultiplier,
         },
         uFoamColor: { value: new THREE.Color(this.foamColor) },
-        uFoamOffset: { value: 0.175 },
-        uFoamNoiseIntensity: { value: 0.3 },
+        uFoamOffset: { value: 0.21 },
         uFoamIntensity: { value: 3.45 },
-        uFoamSpeed: { value: 0.12 },
-        uFoamScale: { value: 13.0 },
+        uFoamSpeed: { value: 0.2 },
+        uFoamScale: { value: 10 },
+        uFoamTexture: { value: this.foamTextures.none },
       },
     });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.rotation.x = -Math.PI / 2;
 
-    this.experience.scene.add(this.mesh);
+    /* FOAM TEXTURE */
+    const foamTexture1 =
+      this.experience.resources.getAsset<THREE.Texture>("foamTexture1");
+    if (foamTexture1) {
+      foamTexture1.wrapS = THREE.RepeatWrapping;
+      foamTexture1.wrapT = THREE.RepeatWrapping;
+      this.foamTextures["1"] = foamTexture1;
+      this.selectedFoamTexture = "1";
+      this.material.uniforms.uFoamTexture.value = foamTexture1;
+    }
+    const foamTexture2 =
+      this.experience.resources.getAsset<THREE.Texture>("foamTexture2");
+    if (foamTexture2) {
+      foamTexture2.wrapS = THREE.RepeatWrapping;
+      foamTexture2.wrapT = THREE.RepeatWrapping;
+      this.foamTextures["2"] = foamTexture2;
+    }
 
+    this.experience.scene.add(this.mesh);
     this.setupTweaks();
   }
 
@@ -272,6 +302,19 @@ class Sea {
 
     const foamTweaks = this.tweaks.addFolder("Foam");
     foamTweaks
+      .add(
+        { foamTexture: this.selectedFoamTexture },
+        "foamTexture",
+        this.foamTextureKeys
+      )
+      .name("FoamTexture")
+      .onChange((value: string) => {
+        this.selectedFoamTexture = value;
+        this.material.uniforms.uFoamTexture.value =
+          this.foamTextures[value] || this.foamTextures.none;
+      });
+
+    foamTweaks
       .addColor(this, "foamColor")
       .name("FoamColor")
       .onChange(() => {
@@ -279,23 +322,17 @@ class Sea {
       })
       .listen();
     foamTweaks
-      .add(this.material.uniforms.uFoamNoiseIntensity, "value")
-      .min(0)
-      .max(5)
+      .add(this.material.uniforms.uFoamOffset, "value")
+      .min(-1)
+      .max(1)
       .step(0.001)
-      .name("FoamNoiseIntensity");
+      .name("FoamOffset");
     foamTweaks
       .add(this.material.uniforms.uFoamIntensity, "value")
       .min(0)
       .max(5)
       .step(0.001)
       .name("FoamIntensity");
-    foamTweaks
-      .add(this.material.uniforms.uFoamOffset, "value")
-      .min(0)
-      .max(1)
-      .step(0.001)
-      .name("FoamOffset");
     foamTweaks
       .add(this.material.uniforms.uFoamScale, "value")
       .min(0)

@@ -1,18 +1,24 @@
+import Experience from "../Experience";
 import Sea from "./sea/Sea";
 
 class World {
-  sea: Sea;
+  private readonly experience: Experience;
+  sea?: Sea;
 
   constructor() {
-    this.sea = new Sea();
+    this.experience = Experience.getInstance();
+
+    this.experience.resources.on("loaded", () => {
+      this.sea = new Sea();
+    });
   }
 
   update() {
-    this.sea.update();
+    this.sea?.update();
   }
 
   destroy() {
-    this.sea.dispose();
+    this.sea?.dispose();
   }
 }
 

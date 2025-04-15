@@ -8,10 +8,12 @@ import World from "./world/World";
 import Debug from "./utils/Debug";
 import FullscreenHandler from "./utils/FullscreenHandler";
 import InstructionBanner from "./utils/InstructionBanner";
+import Resources from "./utils/Resources";
 
 class Experience {
   private static instance: Experience;
   debug!: Debug;
+  resources!: Resources;
   canvas!: Canvas;
   fullscreenHandler!: FullscreenHandler;
   sizes!: Sizes;
@@ -32,6 +34,7 @@ class Experience {
     window.experience = this;
 
     this.debug = new Debug();
+    this.resources = new Resources();
     this.canvas = new Canvas();
     this.fullscreenHandler = new FullscreenHandler();
     this.sizes = new Sizes();

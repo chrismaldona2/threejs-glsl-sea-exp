@@ -16,7 +16,7 @@ class Camera {
       0.1,
       100
     );
-    this.instance.position.set(0.25, 2, 3);
+    this.instance.position.set(-4, 3.3, 4.2);
     this.experience.scene.add(this.instance);
 
     /* ORBIT CONTROLS */
@@ -26,9 +26,10 @@ class Camera {
     );
     this.controls.enableDamping = true;
     this.controls.minDistance = 0.8;
-    this.controls.maxDistance = 4;
-    this.controls.maxTargetRadius = 0.5;
+    this.controls.maxDistance = 9;
+    this.controls.maxTargetRadius = 1;
     this.controls.maxPolarAngle = Math.PI / 2.15;
+    this.controls.target.set(0, -1, 0);
   }
 
   update() {

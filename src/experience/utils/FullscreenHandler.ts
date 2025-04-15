@@ -3,24 +3,25 @@ import Experience from "../Experience";
 
 class FullscreenHandler {
   private canvas: HTMLCanvasElement;
-  private handleDblClick: () => void;
-  private handleKeydown: (event: KeyboardEvent) => void;
 
   constructor() {
     this.canvas = Experience.getInstance().canvas.domElement;
 
-    this.handleDblClick = () => this.toggleFullscreen();
-    this.handleKeydown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "f") this.toggleFullscreen();
-    };
-
-    this.canvas.addEventListener("dblclick", this.handleDblClick);
-    window.addEventListener("keydown", this.handleKeydown);
+    this.canvas.addEventListener("dblclick", this.doubleClickHandler);
+    window.addEventListener("keydown", this.keydownHandler);
   }
 
+  private doubleClickHandler = () => {
+    this.toggleFullscreen();
+  };
+
+  private keydownHandler = (e: KeyboardEvent) => {
+    if (e.key.toLowerCase() === "f") this.toggleFullscreen();
+  };
+
   dispose() {
-    this.canvas.removeEventListener("dblclick", this.handleDblClick);
-    window.removeEventListener("keydown", this.handleKeydown);
+    this.canvas.removeEventListener("dblclick", this.doubleClickHandler);
+    window.removeEventListener("keydown", this.keydownHandler);
   }
 
   goFullscreen() {
