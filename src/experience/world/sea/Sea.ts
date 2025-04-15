@@ -6,7 +6,6 @@ import Experience from "../../Experience";
 import GUI from "lil-gui";
 
 type SeaVariant = "cold" | "warm" | "temperate";
-type FoamKey = "none" | "1" | "2";
 
 interface VariantConfig {
   bgColor: `#${string}`;
