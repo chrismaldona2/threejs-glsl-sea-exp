@@ -2,7 +2,7 @@
 
 An animated ocean built using [Three.js](https://threejs.org/) and custom GLSL shaders.
 
-Perlin noise algorithm from [GLSL Noise Algorithms Gist](https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83)
+Perlin noise algorithm from [GLSL Noise Algorithms Gist](https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83).
 
 ### Demo
 
